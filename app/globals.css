@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  @apply bg-gray-100 text-gray-900;
+}
+
+.btn-gradient {
+  @apply bg-gradient-to-r from-brand-700 to-brand-600 text-white rounded-md px-4 py-2 transition-shadow shadow hover:shadow-lg hover:from-brand-600 hover:to-brand-500 active:scale-[0.99];
+}
+
+.table-card {
+  @apply bg-white rounded-xl shadow-sm ring-1 ring-gray-200;
+}
+
