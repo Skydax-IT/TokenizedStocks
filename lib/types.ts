@@ -56,6 +56,10 @@ export type TokensApiResponse = {
     unavailable: number;
   };
   warnings?: string[];
+  circuitBreakers?: {
+    kraken: string;
+    coingecko: string;
+  };
 };
 
 // Affiliate data type

@@ -17,9 +17,12 @@
 - **Rate Limiting**: Built-in timeout protection
 
 ### Components
-- **TokenTable**: Sortable, searchable, paginated table with watchlist functionality
+- **TokenTable**: Sortable, searchable, paginated table with watchlist functionality and chart/alert buttons
 - **CompareDrawer**: Side-by-side token comparison (up to 4 tokens)
 - **MarketSummary**: Market overview with key metrics
+- **PriceChart**: Interactive price charts with multiple timeframes (1h, 24h, 7d)
+- **PriceAlerts**: Browser notification system for price targets
+- **Portfolio**: Portfolio tracking with P&L calculations and weighted averages
 - **Newsletter**: Beehiiv API integration with GDPR compliance
 - **ErrorState**: User-friendly error handling
 - **Footer**: Comprehensive site footer with links
@@ -27,6 +30,9 @@
 ### Features
 - **Watchlist Management**: Local storage-based watchlist with star icons
 - **Token Comparison**: Multi-token comparison with insights
+- **Price Charts**: Interactive charts with multiple timeframes and volume data
+- **Price Alerts**: Browser notifications for price targets with above/below conditions
+- **Portfolio Tracking**: Holdings management with P&L calculations and weighted averages
 - **Affiliate System**: Centralized affiliate link management with UTM tracking
 - **Search & Filtering**: Real-time search and sorting capabilities
 - **Pagination**: Configurable page sizes (10, 25, 50)
@@ -61,6 +67,7 @@ lib/
 - **SWR**: Data fetching
 - **Zod**: Schema validation
 - **Heroicons**: Icon library
+- **Recharts**: Chart library for data visualization
 
 ### Build Status
 - ✅ TypeScript compilation
@@ -78,10 +85,13 @@ The application is **fully functional** and ready for:
 ### What Works
 1. **Data Fetching**: Both Kraken and CoinGecko APIs are integrated
 2. **UI Components**: All components are implemented and styled
-3. **State Management**: Watchlist, comparison, and search functionality
-4. **Responsive Design**: Mobile and desktop optimized
-5. **Error Handling**: Graceful fallbacks and user feedback
-6. **Performance**: Optimized with SWR and proper caching
+3. **State Management**: Watchlist, comparison, search, alerts, and portfolio functionality
+4. **Price Charts**: Interactive charts with multiple timeframes and real-time data
+5. **Price Alerts**: Browser notification system with localStorage persistence
+6. **Portfolio Tracking**: Holdings management with automatic P&L calculations
+7. **Responsive Design**: Mobile and desktop optimized
+8. **Error Handling**: Graceful fallbacks and user feedback
+9. **Performance**: Optimized with SWR and proper caching
 
 ### Configuration Needed
 1. **Environment Variables**: Create `.env.local` from `env.example`
@@ -94,6 +104,9 @@ The application is **fully functional** and ready for:
 - View real-time tokenized stock data
 - Add/remove tokens from personal watchlist
 - Compare up to 4 tokens side-by-side
+- View interactive price charts with multiple timeframes
+- Set price alerts with browser notifications
+- Track portfolio holdings with P&L calculations
 - Search and filter tokens
 - Subscribe to newsletter (with GDPR compliance)
 - Access affiliate links for trading
@@ -114,12 +127,12 @@ The application is **fully functional** and ready for:
 4. Deploy to production (Vercel recommended)
 
 ### Future Enhancements
-1. **Charts**: Add price charts for individual tokens
-2. **Alerts**: Price alert notifications
-3. **Portfolio Tracking**: User portfolio management
-4. **More Data Sources**: Additional exchange integrations
-5. **Real-time Updates**: WebSocket connections for live data
-6. **User Accounts**: Authentication and personalized features
+1. **Real-time Updates**: WebSocket connections for live data
+2. **User Accounts**: Authentication and personalized features
+3. **More Data Sources**: Additional exchange integrations
+4. **Advanced Charts**: Technical indicators and drawing tools
+5. **Portfolio Analytics**: Performance metrics and risk analysis
+6. **Social Features**: Sharing portfolios and watchlists
 
 ## 🐛 Known Issues
 

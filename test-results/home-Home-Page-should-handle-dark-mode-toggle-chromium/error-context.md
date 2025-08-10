@@ -1,0 +1,82 @@
+# Page snapshot
+
+```yaml
+- banner:
+  - heading "Tokenized Stocks Dashboard" [level=1]
+  - paragraph: Live Tokenized Stock Data • Real-time Prices • RWA Dashboard
+  - navigation:
+    - list:
+      - listitem:
+        - link "Dashboard":
+          - /url: /
+      - listitem:
+        - link "Documentation":
+          - /url: /docs
+- main:
+  - heading "Tokenized Stocks Dashboard" [level=1]
+  - paragraph: Real-time data from Kraken and CoinGecko APIs. Auto-refreshes every 5 minutes.
+  - button "Refresh data" [disabled]: Refresh
+  - 'button "Current theme: system. Click to toggle."': System
+  - button "Compare (0/4)" [disabled]
+  - navigation:
+    - button "All Tokens (0)"
+    - button "My Watchlist (0)"
+  - img
+  - text: Loading token data...
+  - heading "Stay Updated" [level=3]
+  - paragraph: Get weekly insights on tokenization and real-world assets. No spam, unsubscribe anytime.
+  - textbox
+  - text: Email address
+  - textbox "Email address"
+  - checkbox "I consent to receiving email updates from Tokenized Stocks Dashboard. I understand that I can unsubscribe at any time. By checking this box, you agree to our Privacy Policy and consent to the processing of your email address for newsletter purposes."
+  - text: I consent to receiving email updates from Tokenized Stocks Dashboard. I understand that I can unsubscribe at any time. By checking this box, you agree to our
+  - link "Privacy Policy":
+    - /url: "#"
+  - text: and consent to the processing of your email address for newsletter purposes.
+  - button "Subscribe to Newsletter" [disabled]
+  - paragraph: 🔒 Your data is protected and never shared with third parties
+  - paragraph: 📧 You can unsubscribe at any time with one click
+  - paragraph: ⚡ Get insights delivered straight to your inbox
+- contentinfo:
+  - heading "📈 Tokenized Stocks" [level=3]
+  - paragraph: Real-time data for tokenized stocks from major exchanges. Stay informed about the latest developments in RWA tokenization.
+  - link "Twitter":
+    - /url: "#"
+    - text: Twitter
+    - img
+  - link "GitHub":
+    - /url: "#"
+    - text: GitHub
+    - img
+  - heading "Quick Links" [level=4]
+  - list:
+    - listitem:
+      - link "Dashboard":
+        - /url: "#"
+    - listitem:
+      - link "Markets":
+        - /url: "#"
+    - listitem:
+      - link "News":
+        - /url: "#"
+    - listitem:
+      - link "About":
+        - /url: "#"
+  - heading "Resources" [level=4]
+  - list:
+    - listitem:
+      - link "Documentation":
+        - /url: "#"
+    - listitem:
+      - link "API Reference":
+        - /url: "#"
+    - listitem:
+      - link "Support":
+        - /url: "#"
+    - listitem:
+      - link "Privacy Policy":
+        - /url: "#"
+  - paragraph: © 2024 Tokenized Stocks. All rights reserved.
+  - paragraph: Data from public APIs (Kraken, CoinGecko). Not financial advice.
+- alert
+```

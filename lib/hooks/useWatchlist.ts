@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-const WATCHLIST_STORAGE_KEY = 'tokenized-stocks-watchlist';
-
 export function useWatchlist() {
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -11,7 +9,7 @@ export function useWatchlist() {
   // Load watchlist from localStorage on mount
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(WATCHLIST_STORAGE_KEY);
+      const stored = localStorage.getItem('tokenized-stocks-watchlist');
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
@@ -19,7 +17,7 @@ export function useWatchlist() {
         }
       }
     } catch (error) {
-      console.error('Failed to load watchlist from localStorage:', error);
+      console.warn('Failed to load watchlist from localStorage:', error);
     } finally {
       setIsLoaded(true);
     }
@@ -29,49 +27,54 @@ export function useWatchlist() {
   useEffect(() => {
     if (isLoaded) {
       try {
-        localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(watchlist));
+        localStorage.setItem('tokenized-stocks-watchlist', JSON.stringify(watchlist));
       } catch (error) {
-        console.error('Failed to save watchlist to localStorage:', error);
+        console.warn('Failed to save watchlist to localStorage:', error);
       }
     }
   }, [watchlist, isLoaded]);
 
   const addToWatchlist = useCallback((symbol: string) => {
     setWatchlist(prev => {
-      if (prev.includes(symbol)) return prev;
-      return [...prev, symbol];
+      const upperSymbol = symbol.toUpperCase();
+      if (!prev.includes(upperSymbol)) {
+        return [...prev, upperSymbol];
+      }
+      return prev;
     });
   }, []);
 
   const removeFromWatchlist = useCallback((symbol: string) => {
-    setWatchlist(prev => prev.filter(s => s !== symbol));
+    setWatchlist(prev => {
+      const upperSymbol = symbol.toUpperCase();
+      return prev.filter(s => s !== upperSymbol);
+    });
   }, []);
 
   const toggleWatchlist = useCallback((symbol: string) => {
-    setWatchlist(prev => {
-      if (prev.includes(symbol)) {
-        return prev.filter(s => s !== symbol);
-      } else {
-        return [...prev, symbol];
-      }
-    });
-  }, []);
+    const upperSymbol = symbol.toUpperCase();
+    if (watchlist.includes(upperSymbol)) {
+      removeFromWatchlist(upperSymbol);
+    } else {
+      addToWatchlist(upperSymbol);
+    }
+  }, [watchlist, addToWatchlist, removeFromWatchlist]);
+
+  const isInWatchlist = useCallback((symbol: string) => {
+    return watchlist.includes(symbol.toUpperCase());
+  }, [watchlist]);
 
   const clearWatchlist = useCallback(() => {
     setWatchlist([]);
   }, []);
 
-  const isInWatchlist = useCallback((symbol: string) => {
-    return watchlist.includes(symbol);
-  }, [watchlist]);
-
   return {
     watchlist,
-    isLoaded,
     addToWatchlist,
     removeFromWatchlist,
     toggleWatchlist,
-    clearWatchlist,
     isInWatchlist,
+    clearWatchlist,
+    isLoaded,
   };
 }

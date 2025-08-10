@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { checkRateLimit, getClientIP } from '@/lib/rateLimit';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -7,43 +8,44 @@ export const revalidate = 0;
 const BEEHIIV_API_KEY = process.env.BEEHIIV_API_KEY;
 const BEEHIIV_PUBLICATION_ID = process.env.BEEHIIV_PUBLICATION_ID;
 
-// Enhanced validation schema
+// Enhanced validation schema with robust email validation
 const NewsletterSchema = z.object({
-  email: z.string().email('Invalid email format'),
+  email: z.string()
+    .min(1, 'Email is required')
+    .email('Invalid email format')
+    .max(254, 'Email too long')
+    .refine(email => {
+      // Basic MX record format check (no external call)
+      const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+      return emailRegex.test(email);
+    }, 'Invalid email format'),
   consent: z.boolean().refine(val => val === true, 'GDPR consent is required'),
   honeypot: z.string().refine(val => val === '', 'Invalid submission'),
   source: z.string().optional(),
 });
 
-// Rate limiting (simple in-memory store - use Redis in production)
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const limit = rateLimitStore.get(ip);
-  
-  if (!limit || now > limit.resetTime) {
-    rateLimitStore.set(ip, { count: 1, resetTime: now + 60000 }); // 1 minute window
-    return true;
-  }
-  
-  if (limit.count >= 3) { // Max 3 attempts per minute
-    return false;
-  }
-  
-  limit.count++;
-  return true;
-}
-
 export async function POST(req: NextRequest) {
   try {
-    const ip = req.ip || req.headers.get('x-forwarded-for') || 'unknown';
+    const clientIP = getClientIP(req);
     
-    // Check rate limiting
-    if (!checkRateLimit(ip)) {
+    // Check rate limiting (stricter for newsletter)
+    const rateLimitResult = checkRateLimit(clientIP, { maxRequests: 3, windowMs: 60000 });
+    
+    if (!rateLimitResult.allowed) {
       return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        { status: 429 }
+        { 
+          error: 'Too many requests. Please try again later.',
+          retryAfter: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000),
+        },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000).toString(),
+            'X-RateLimit-Limit': '3',
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
+          },
+        }
       );
     }
 

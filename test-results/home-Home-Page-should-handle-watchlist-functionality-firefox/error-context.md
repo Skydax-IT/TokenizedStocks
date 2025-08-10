@@ -1,0 +1,230 @@
+# Page snapshot
+
+```yaml
+- banner:
+  - heading "Tokenized Stocks Dashboard" [level=1]
+  - paragraph: Live Tokenized Stock Data • Real-time Prices • RWA Dashboard
+  - navigation:
+    - list:
+      - listitem:
+        - link "Dashboard":
+          - /url: /
+      - listitem:
+        - link "Documentation":
+          - /url: /docs
+- main:
+  - heading "Tokenized Stocks Dashboard" [level=1]
+  - paragraph: Real-time data from Kraken and CoinGecko APIs. Auto-refreshes every 5 minutes.
+  - button "Refresh data": Refresh
+  - 'button "Current theme: system. Click to toggle."': System
+  - button "Compare (0/4)" [disabled]
+  - navigation:
+    - button "All Tokens (10)"
+    - button "My Watchlist (0)"
+  - paragraph: Total Value
+  - paragraph: $2.52K
+  - img
+  - paragraph: 24h Change
+  - paragraph: "-1.02%"
+  - img
+  - paragraph: 24h Volume
+  - paragraph: $45.78M
+  - img
+  - paragraph: Market Sentiment
+  - paragraph: 3/10
+  - paragraph: Gainers/Total
+  - img
+  - region "Token data table":
+    - textbox "Search tokens"
+    - button "Show watchlist only": All
+    - button "Export to CSV": Export CSV
+    - text: "Show:"
+    - combobox "Select page size":
+      - option "10" [selected]
+      - option "25"
+      - option "50"
+    - text: Showing 1-10 of 10 tokens
+    - table "Token prices and data":
+      - rowgroup:
+        - row "Sort by symbol Sort by name Sort by price Sort by 24h change Sort by volume Watchlist Actions":
+          - cell "Sort by symbol":
+            - button "Sort by symbol": Symbol
+          - cell "Sort by name":
+            - button "Sort by name": Name
+          - cell "Sort by price":
+            - button "Sort by price": Price (USD)
+          - cell "Sort by 24h change":
+            - button "Sort by 24h change": 24h Change
+          - cell "Sort by volume":
+            - button "Sort by volume": 24h Volume
+          - cell "Watchlist"
+          - cell "Actions"
+      - rowgroup:
+        - row "AAPL Apple Inc. $140.56 -3.15% $2.67M Add AAPL to watchlist Add AAPL to comparison Buy AAPL":
+          - cell "AAPL"
+          - cell "Apple Inc."
+          - cell "$140.56"
+          - cell "-3.15%"
+          - cell "$2.67M"
+          - cell "Add AAPL to watchlist":
+            - button "Add AAPL to watchlist"
+          - cell "Add AAPL to comparison Buy AAPL":
+            - button "Add AAPL to comparison": Compare
+            - button "Buy AAPL": Buy
+        - row "AMZN Amazon.com, Inc. $123.05 -2.67% $3.09M Add AMZN to watchlist Add AMZN to comparison Buy AMZN":
+          - cell "AMZN"
+          - cell "Amazon.com, Inc."
+          - cell "$123.05"
+          - cell "-2.67%"
+          - cell "$3.09M"
+          - cell "Add AMZN to watchlist":
+            - button "Add AMZN to watchlist"
+          - cell "Add AMZN to comparison Buy AMZN":
+            - button "Add AMZN to comparison": Compare
+            - button "Buy AMZN": Buy
+        - row "BABA Alibaba Group $72.93 -4.42% $1.53M Add BABA to watchlist Add BABA to comparison Buy BABA":
+          - cell "BABA"
+          - cell "Alibaba Group"
+          - cell "$72.93"
+          - cell "-4.42%"
+          - cell "$1.53M"
+          - cell "Add BABA to watchlist":
+            - button "Add BABA to watchlist"
+          - cell "Add BABA to comparison Buy BABA":
+            - button "Add BABA to comparison": Compare
+            - button "Buy BABA": Buy
+        - row "GOOG Alphabet Inc. (Class C) $143.46 +1.24% $6.61M Add GOOG to watchlist Add GOOG to comparison Buy GOOG":
+          - cell "GOOG"
+          - cell "Alphabet Inc. (Class C)"
+          - cell "$143.46"
+          - cell "+1.24%"
+          - cell "$6.61M"
+          - cell "Add GOOG to watchlist":
+            - button "Add GOOG to watchlist"
+          - cell "Add GOOG to comparison Buy GOOG":
+            - button "Add GOOG to comparison": Compare
+            - button "Buy GOOG": Buy
+        - row "META Meta Platforms, Inc. $242.90 -1.42% $4.22M Add META to watchlist Add META to comparison Buy META":
+          - cell "META"
+          - cell "Meta Platforms, Inc."
+          - cell "$242.90"
+          - cell "-1.42%"
+          - cell "$4.22M"
+          - cell "Add META to watchlist":
+            - button "Add META to watchlist"
+          - cell "Add META to comparison Buy META":
+            - button "Add META to comparison": Compare
+            - button "Buy META": Buy
+        - row "MSFT Microsoft Corporation $291.48 -1.42% $4.22M Add MSFT to watchlist Add MSFT to comparison Buy MSFT":
+          - cell "MSFT"
+          - cell "Microsoft Corporation"
+          - cell "$291.48"
+          - cell "-1.42%"
+          - cell "$4.22M"
+          - cell "Add MSFT to watchlist":
+            - button "Add MSFT to watchlist"
+          - cell "Add MSFT to comparison Buy MSFT":
+            - button "Add MSFT to comparison": Compare
+            - button "Buy MSFT": Buy
+        - row "NFLX Netflix, Inc. $423.20 +2.90% $8.11M Add NFLX to watchlist Add NFLX to comparison Buy NFLX":
+          - cell "NFLX"
+          - cell "Netflix, Inc."
+          - cell "$423.20"
+          - cell "+2.90%"
+          - cell "$8.11M"
+          - cell "Add NFLX to watchlist":
+            - button "Add NFLX to watchlist"
+          - cell "Add NFLX to comparison Buy NFLX":
+            - button "Add NFLX to comparison": Compare
+            - button "Buy NFLX": Buy
+        - row "NVDA NVIDIA Corporation $757.24 -2.67% $3.09M Add NVDA to watchlist Add NVDA to comparison Buy NVDA":
+          - cell "NVDA"
+          - cell "NVIDIA Corporation"
+          - cell "$757.24"
+          - cell "-2.67%"
+          - cell "$3.09M"
+          - cell "Add NVDA to watchlist":
+            - button "Add NVDA to watchlist"
+          - cell "Add NVDA to comparison Buy NVDA":
+            - button "Add NVDA to comparison": Compare
+            - button "Buy NVDA": Buy
+        - row "ORCL Oracle Corporation $113.53 -2.69% $3.08M Add ORCL to watchlist Add ORCL to comparison Buy ORCL":
+          - cell "ORCL"
+          - cell "Oracle Corporation"
+          - cell "$113.53"
+          - cell "-2.69%"
+          - cell "$3.08M"
+          - cell "Add ORCL to watchlist":
+            - button "Add ORCL to watchlist"
+          - cell "Add ORCL to comparison Buy ORCL":
+            - button "Add ORCL to comparison": Compare
+            - button "Buy ORCL": Buy
+        - row "TSLA Tesla, Inc. $216.26 +4.07% $9.16M Add TSLA to watchlist Add TSLA to comparison Buy TSLA":
+          - cell "TSLA"
+          - cell "Tesla, Inc."
+          - cell "$216.26"
+          - cell "+4.07%"
+          - cell "$9.16M"
+          - cell "Add TSLA to watchlist":
+            - button "Add TSLA to watchlist"
+          - cell "Add TSLA to comparison Buy TSLA":
+            - button "Add TSLA to comparison": Compare
+            - button "Buy TSLA": Buy
+  - text: "Data sources: 0 Kraken, 10 CoinGecko, 0 unavailable Circuits: Kraken (closed), CoinGecko (closed) Last updated: 8/10/2025, 2:45:22 AM"
+  - heading "Stay Updated" [level=3]
+  - paragraph: Get weekly insights on tokenization and real-world assets. No spam, unsubscribe anytime.
+  - textbox
+  - text: Email address
+  - textbox "Email address"
+  - checkbox "I consent to receiving email updates from Tokenized Stocks Dashboard. I understand that I can unsubscribe at any time. By checking this box, you agree to our Privacy Policy and consent to the processing of your email address for newsletter purposes."
+  - text: I consent to receiving email updates from Tokenized Stocks Dashboard. I understand that I can unsubscribe at any time. By checking this box, you agree to our
+  - link "Privacy Policy":
+    - /url: "#"
+  - text: and consent to the processing of your email address for newsletter purposes.
+  - button "Subscribe to Newsletter" [disabled]
+  - paragraph: 🔒 Your data is protected and never shared with third parties
+  - paragraph: 📧 You can unsubscribe at any time with one click
+  - paragraph: ⚡ Get insights delivered straight to your inbox
+- contentinfo:
+  - heading "📈 Tokenized Stocks" [level=3]
+  - paragraph: Real-time data for tokenized stocks from major exchanges. Stay informed about the latest developments in RWA tokenization.
+  - link "Twitter":
+    - /url: "#"
+    - text: Twitter
+    - img
+  - link "GitHub":
+    - /url: "#"
+    - text: GitHub
+    - img
+  - heading "Quick Links" [level=4]
+  - list:
+    - listitem:
+      - link "Dashboard":
+        - /url: "#"
+    - listitem:
+      - link "Markets":
+        - /url: "#"
+    - listitem:
+      - link "News":
+        - /url: "#"
+    - listitem:
+      - link "About":
+        - /url: "#"
+  - heading "Resources" [level=4]
+  - list:
+    - listitem:
+      - link "Documentation":
+        - /url: "#"
+    - listitem:
+      - link "API Reference":
+        - /url: "#"
+    - listitem:
+      - link "Support":
+        - /url: "#"
+    - listitem:
+      - link "Privacy Policy":
+        - /url: "#"
+  - paragraph: © 2024 Tokenized Stocks. All rights reserved.
+  - paragraph: Data from public APIs (Kraken, CoinGecko). Not financial advice.
+- alert
+```

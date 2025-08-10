@@ -5,6 +5,8 @@ import { fetchCoinGeckoTicker } from '@/lib/fetchers/coingecko';
 import { fetchMockTicker } from '@/lib/fetchers/mock';
 import { normalizeTokenData } from '@/lib/normalize';
 import { TokenRow } from '@/lib/types';
+import { checkRateLimit, getClientIP } from '@/lib/rateLimit';
+import { checkCircuitBreaker } from '@/lib/rateLimit';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -80,6 +82,34 @@ async function fetchTokenData(token: TokenConfig): Promise<TokenRow | null> {
 
 export async function GET(request: NextRequest) {
   try {
+    // Rate limiting
+    const clientIP = getClientIP(request);
+    const rateLimitResult = checkRateLimit(clientIP, { maxRequests: 100, windowMs: 60000 });
+    
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { 
+          error: 'Rate limit exceeded',
+          message: 'Too many requests. Please try again later.',
+          retryAfter: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000),
+          updatedAt: new Date().toISOString()
+        },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000).toString(),
+            'X-RateLimit-Limit': '100',
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
+          },
+        }
+      );
+    }
+
+    // Check circuit breakers for external APIs
+    const krakenCircuit = checkCircuitBreaker('kraken');
+    const coingeckoCircuit = checkCircuitBreaker('coingecko');
+
     // Load tokens from configuration
     const tokens = getAllTokens();
     
@@ -122,6 +152,10 @@ export async function GET(request: NextRequest) {
         unavailable: unavailableCount,
       },
       warnings: warnings.length > 0 ? warnings : undefined,
+      circuitBreakers: {
+        kraken: krakenCircuit.state,
+        coingecko: coingeckoCircuit.state,
+      },
     };
 
     return NextResponse.json(apiResponse, {
@@ -129,6 +163,9 @@ export async function GET(request: NextRequest) {
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
         'Pragma': 'no-cache',
         'Expires': '0',
+        'X-RateLimit-Limit': '100',
+        'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+        'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
       },
     });
 
