@@ -136,3 +136,31 @@ export function createSourceFetcher(source: 'kraken' | 'coingecko') {
 // Pre-configured fetchers
 export const krakenFetch = createSourceFetcher('kraken');
 export const coingeckoFetch = createSourceFetcher('coingecko');
+
+/**
+ * Fetch tokens from the API endpoint
+ */
+export async function fetchTokens(): Promise<any[]> {
+  try {
+    const response = await enhancedFetch('/api/tokens', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }, {
+      timeout: 10000,
+      retries: 2,
+      circuitBreakerKey: 'tokens',
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.data || [];
+  } catch (error) {
+    console.error('Error fetching tokens:', error);
+    throw error;
+  }
+}

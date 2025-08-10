@@ -1,6 +1,22 @@
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
+import { Inter, Space_Grotesk } from 'next/font/google';
 import Footer from '@/components/Footer';
+import { ThemeProvider } from '@/lib/hooks/use-theme';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { Toaster } from '@/components/ui/toaster';
+
+const inter = Inter({ 
+  subsets: ['latin'], 
+  display: 'swap', 
+  variable: '--font-inter' 
+});
+
+const grotesk = Space_Grotesk({ 
+  subsets: ['latin'], 
+  display: 'swap', 
+  variable: '--font-grotesk' 
+});
 
 export const metadata: Metadata = {
   title: 'Tokenized Stocks Dashboard – Live Tokenized Stock Data',
@@ -25,44 +41,58 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#1C2541',
-  colorScheme: 'light'
+  themeColor: '#12D2A0',
+  colorScheme: 'dark'
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body>
-        <header className="w-full bg-brand-900 text-white">
-          <div className="mx-auto max-w-6xl px-4 py-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
-                  Tokenized Stocks Dashboard
-                </h1>
-                <p className="text-sm text-gray-300 mt-1">
-                  Live Tokenized Stock Data • Real-time Prices • RWA Dashboard
-                </p>
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <body className={`${inter.variable} ${grotesk.variable} font-sans bg-bg text-fg`}>
+        <a href="#main-content" className="skip-link">
+          Skip to content
+        </a>
+        <ThemeProvider defaultTheme="dark" storageKey="ui-theme">
+          <header className="w-full bg-card border-b border-border">
+            <div className="mx-auto max-w-6xl px-4 py-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h1 className="h2 text-fg font-display">
+                    Tokenized Stocks Dashboard
+                  </h1>
+                  <p className="body-sm text-muted mt-1">
+                    Live Tokenized Stock Data • Real-time Prices • RWA Dashboard
+                  </p>
+                </div>
+                <div className="flex items-center space-x-6 mt-4 sm:mt-0">
+                  <nav>
+                    <ul className="flex space-x-6 text-sm">
+                      <li>
+                        <a href="/" className="text-muted hover:text-fg transition-colors">
+                          Dashboard
+                        </a>
+                      </li>
+                      <li>
+                        <a href="/docs" className="text-muted hover:text-fg transition-colors">
+                          Documentation
+                        </a>
+                      </li>
+                      <li>
+                        <a href="/styleguide" className="text-muted hover:text-fg transition-colors">
+                          Styleguide
+                        </a>
+                      </li>
+                    </ul>
+                  </nav>
+                  <ThemeToggle />
+                </div>
               </div>
-              <nav className="mt-4 sm:mt-0">
-                <ul className="flex space-x-6 text-sm">
-                  <li>
-                    <a href="/" className="text-gray-300 hover:text-white transition-colors">
-                      Dashboard
-                    </a>
-                  </li>
-                  <li>
-                    <a href="/docs" className="text-gray-300 hover:text-white transition-colors">
-                      Documentation
-                    </a>
-                  </li>
-                </ul>
-              </nav>
             </div>
-          </div>
-        </header>
-        <main className="mx-auto max-w-6xl p-4 sm:p-6">{children}</main>
-        <Footer />
+          </header>
+          <main id="main-content" className="mx-auto max-w-6xl p-4 sm:p-6 page-transition">{children}</main>
+          <Footer />
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

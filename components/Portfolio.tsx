@@ -1,392 +1,318 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { TokenRow } from '@/lib/types';
-import { PlusIcon, MinusIcon, TrashIcon, ChartBarIcon } from '@heroicons/react/24/outline';
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { PlusIcon, TrashIcon, TrendingUpIcon, TrendingDownIcon, DollarSignIcon } from 'lucide-react';
 
-interface PortfolioHolding {
+interface PortfolioItem {
   symbol: string;
   name: string;
-  quantity: number;
-  averagePrice: number;
-  addedAt: Date;
+  shares: number;
+  avgPrice: number;
+  currentPrice: number;
+  totalValue: number;
+  totalCost: number;
+  gainLoss: number;
+  gainLossPct: number;
 }
 
-interface PortfolioProps {
-  isOpen: boolean;
-  onClose: () => void;
-  tokens: TokenRow[];
-}
-
-export default function Portfolio({ isOpen, onClose, tokens }: PortfolioProps) {
-  const [holdings, setHoldings] = useState<PortfolioHolding[]>([]);
-  const [selectedToken, setSelectedToken] = useState<string>('');
-  const [quantity, setQuantity] = useState<string>('');
-  const [price, setPrice] = useState<string>('');
-  const [showAddForm, setShowAddForm] = useState(false);
-
-  // Load portfolio from localStorage on mount
-  useEffect(() => {
-    const savedPortfolio = localStorage.getItem('portfolio');
-    if (savedPortfolio) {
-      try {
-        const parsed = JSON.parse(savedPortfolio);
-        setHoldings(parsed.map((holding: any) => ({
-          ...holding,
-          addedAt: new Date(holding.addedAt)
-        })));
-      } catch (error) {
-        console.error('Failed to parse saved portfolio:', error);
-      }
+export default function Portfolio() {
+  const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([
+    {
+      symbol: 'TSLA',
+      name: 'Tesla Inc.',
+      shares: 10,
+      avgPrice: 250.00,
+      currentPrice: 275.50,
+      totalValue: 2755.00,
+      totalCost: 2500.00,
+      gainLoss: 255.00,
+      gainLossPct: 10.2
+    },
+    {
+      symbol: 'AAPL',
+      name: 'Apple Inc.',
+      shares: 15,
+      avgPrice: 150.00,
+      currentPrice: 145.75,
+      totalValue: 2186.25,
+      totalCost: 2250.00,
+      gainLoss: -63.75,
+      gainLossPct: -2.83
     }
-  }, []);
+  ]);
 
-  // Save portfolio to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('portfolio', JSON.stringify(holdings));
-  }, [holdings]);
+  const [newSymbol, setNewSymbol] = useState('');
+  const [newShares, setNewShares] = useState('');
+  const [newPrice, setNewPrice] = useState('');
 
-  const handleAddHolding = () => {
-    if (!selectedToken || !quantity || !price) return;
+  const totalPortfolioValue = portfolioItems.reduce((sum, item) => sum + item.totalValue, 0);
+  const totalPortfolioCost = portfolioItems.reduce((sum, item) => sum + item.totalCost, 0);
+  const totalGainLoss = portfolioItems.reduce((sum, item) => sum + item.gainLoss, 0);
+  const totalGainLossPct = totalPortfolioCost > 0 ? (totalGainLoss / totalPortfolioCost) * 100 : 0;
 
-    const token = tokens.find(t => t.symbol === selectedToken);
-    if (!token) return;
+  const addPortfolioItem = () => {
+    if (!newSymbol || !newShares || !newPrice) return;
 
-    const qty = parseFloat(quantity);
-    const avgPrice = parseFloat(price);
-    
-    if (isNaN(qty) || isNaN(avgPrice) || qty <= 0 || avgPrice <= 0) return;
+    const shares = parseFloat(newShares);
+    const price = parseFloat(newPrice);
+    const totalCost = shares * price;
 
-    // Check if holding already exists
-    const existingIndex = holdings.findIndex(h => h.symbol === selectedToken);
-    
-    if (existingIndex >= 0) {
-      // Update existing holding with weighted average
-      const existing = holdings[existingIndex];
-      const totalQuantity = existing.quantity + qty;
-      const totalValue = (existing.quantity * existing.averagePrice) + (qty * avgPrice);
-      const newAveragePrice = totalValue / totalQuantity;
-
-      setHoldings(prev => prev.map((holding, index) => 
-        index === existingIndex 
-          ? { ...holding, quantity: totalQuantity, averagePrice: newAveragePrice }
-          : holding
-      ));
-    } else {
-      // Add new holding
-      const newHolding: PortfolioHolding = {
-        symbol: selectedToken,
-        name: token.name,
-        quantity: qty,
-        averagePrice: avgPrice,
-        addedAt: new Date(),
-      };
-
-      setHoldings(prev => [...prev, newHolding]);
-    }
-
-    // Reset form
-    setSelectedToken('');
-    setQuantity('');
-    setPrice('');
-    setShowAddForm(false);
-  };
-
-  const handleRemoveHolding = (symbol: string) => {
-    setHoldings(prev => prev.filter(h => h.symbol !== symbol));
-  };
-
-  const handleUpdateQuantity = (symbol: string, newQuantity: number) => {
-    if (newQuantity <= 0) {
-      handleRemoveHolding(symbol);
-      return;
-    }
-
-    setHoldings(prev => prev.map(holding => 
-      holding.symbol === symbol 
-        ? { ...holding, quantity: newQuantity }
-        : holding
-    ));
-  };
-
-  // Calculate portfolio metrics
-  const portfolioMetrics = holdings.map(holding => {
-    const token = tokens.find(t => t.symbol === holding.symbol);
-    const currentPrice = token?.priceUsd || 0;
-    const currentValue = holding.quantity * currentPrice;
-    const costBasis = holding.quantity * holding.averagePrice;
-    const gainLoss = currentValue - costBasis;
-    const gainLossPercent = costBasis > 0 ? (gainLoss / costBasis) * 100 : 0;
-
-    return {
-      ...holding,
-      currentPrice,
-      currentValue,
-      costBasis,
-      gainLoss,
-      gainLossPercent,
+    const newItem: PortfolioItem = {
+      symbol: newSymbol.toUpperCase(),
+      name: `${newSymbol.toUpperCase()} Stock`, // In a real app, you'd fetch the actual name
+      shares,
+      avgPrice: price,
+      currentPrice: price, // For demo, using same as purchase price
+      totalValue: totalCost,
+      totalCost,
+      gainLoss: 0,
+      gainLossPct: 0
     };
-  });
 
-  const totalCostBasis = portfolioMetrics.reduce((sum, holding) => sum + holding.costBasis, 0);
-  const totalCurrentValue = portfolioMetrics.reduce((sum, holding) => sum + holding.currentValue, 0);
-  const totalGainLoss = totalCurrentValue - totalCostBasis;
-  const totalGainLossPercent = totalCostBasis > 0 ? (totalGainLoss / totalCostBasis) * 100 : 0;
+    setPortfolioItems([...portfolioItems, newItem]);
+    setNewSymbol('');
+    setNewShares('');
+    setNewPrice('');
+  };
 
-  if (!isOpen) return null;
+  const removePortfolioItem = (symbol: string) => {
+    setPortfolioItems(portfolioItems.filter(item => item.symbol !== symbol));
+  };
+
+  const getGainLossColor = (value: number) => {
+    if (value > 0) return 'text-success';
+    if (value < 0) return 'text-destructive';
+    return 'text-muted-foreground';
+  };
+
+  const getGainLossIcon = (value: number) => {
+    if (value > 0) return <TrendingUpIcon className="h-4 w-4 text-success" />;
+    if (value < 0) return <TrendingDownIcon className="h-4 w-4 text-destructive" />;
+    return null;
+  };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Portfolio Tracker
-            </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Track your token holdings and performance
+    <div className="space-y-6">
+      {/* Portfolio Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Value
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${totalPortfolioValue.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">
+              {portfolioItems.length} positions
             </p>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowAddForm(!showAddForm)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-brand-500 text-white rounded-md hover:bg-brand-600 transition-colors"
-            >
-              <PlusIcon className="h-4 w-4" />
-              Add Holding
-            </button>
-            
-            <button
-              onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Portfolio Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-              <div className="text-sm text-gray-600 dark:text-gray-400">Total Value</div>
-              <div className="text-xl font-semibold text-gray-900 dark:text-white">
-                ${totalCurrentValue.toLocaleString()}
-              </div>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Cost
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${totalPortfolioCost.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">
+              Average cost basis
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              {getGainLossIcon(totalGainLoss)}
+              Total P&L
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${getGainLossColor(totalGainLoss)}`}>
+              ${totalGainLoss.toLocaleString()}
             </div>
-            <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-              <div className="text-sm text-gray-600 dark:text-gray-400">Cost Basis</div>
-              <div className="text-xl font-semibold text-gray-900 dark:text-white">
-                ${totalCostBasis.toLocaleString()}
-              </div>
+            <p className={`text-xs ${getGainLossColor(totalGainLoss)}`}>
+              {totalGainLossPct >= 0 ? '+' : ''}{totalGainLossPct.toFixed(2)}%
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Performance
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${totalGainLossPct >= 0 ? 'text-success' : 'text-destructive'}`}>
+              {totalGainLossPct >= 0 ? '+' : ''}{totalGainLossPct.toFixed(2)}%
             </div>
-            <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-              <div className="text-sm text-gray-600 dark:text-gray-400">Total P&L</div>
-              <div className={`text-xl font-semibold ${
-                totalGainLoss >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {totalGainLoss >= 0 ? '+' : ''}${totalGainLoss.toLocaleString()}
-              </div>
-            </div>
-            <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-              <div className="text-sm text-gray-600 dark:text-gray-400">P&L %</div>
-              <div className={`text-xl font-semibold ${
-                totalGainLossPercent >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {totalGainLossPercent >= 0 ? '+' : ''}{totalGainLossPercent.toFixed(2)}%
-              </div>
-            </div>
-          </div>
-
-          {/* Add Holding Form */}
-          {showAddForm && (
-            <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-                Add New Holding
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {/* Token Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Token
-                  </label>
-                  <select
-                    value={selectedToken}
-                    onChange={(e) => setSelectedToken(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                  >
-                    <option value="">Select a token</option>
-                    {tokens.map(token => (
-                      <option key={token.symbol} value={token.symbol}>
-                        {token.name} ({token.symbol})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Quantity */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Quantity
-                  </label>
-                  <input
-                    type="number"
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
-                    placeholder="0.00"
-                    step="0.000001"
-                    min="0"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                  />
-                </div>
-
-                {/* Average Price */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Average Price ($)
-                  </label>
-                  <input
-                    type="number"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    placeholder="0.00"
-                    step="0.01"
-                    min="0"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                  />
-                </div>
-
-                {/* Add Button */}
-                <div className="flex items-end gap-2">
-                  <button
-                    onClick={handleAddHolding}
-                    disabled={!selectedToken || !quantity || !price}
-                    className="flex-1 px-4 py-2 bg-brand-500 text-white rounded-md hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Add
-                  </button>
-                  <button
-                    onClick={() => setShowAddForm(false)}
-                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Holdings Table */}
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-              Your Holdings ({holdings.length})
-            </h3>
-            
-            {holdings.length === 0 ? (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                <ChartBarIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No holdings yet.</p>
-                <p className="text-sm">Add your first holding to start tracking.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                  <thead className="bg-gray-50 dark:bg-gray-700">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Token
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Quantity
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Avg Price
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Current Price
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Current Value
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        P&L
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    {portfolioMetrics.map((holding) => (
-                      <tr key={holding.symbol} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div>
-                            <div className="text-sm font-medium text-gray-900 dark:text-white">
-                              {holding.name}
-                            </div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400">
-                              {holding.symbol}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="number"
-                              value={holding.quantity}
-                              onChange={(e) => handleUpdateQuantity(holding.symbol, parseFloat(e.target.value) || 0)}
-                              className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                              step="0.000001"
-                              min="0"
-                            />
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                          ${holding.averagePrice.toLocaleString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                          ${holding.currentPrice.toLocaleString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                          ${holding.currentValue.toLocaleString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm">
-                            <div className={`font-medium ${
-                              holding.gainLoss >= 0 ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {holding.gainLoss >= 0 ? '+' : ''}${holding.gainLoss.toLocaleString()}
-                            </div>
-                            <div className={`text-xs ${
-                              holding.gainLossPercent >= 0 ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {holding.gainLossPercent >= 0 ? '+' : ''}{holding.gainLossPercent.toFixed(2)}%
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <button
-                            onClick={() => handleRemoveHolding(holding.symbol)}
-                            className="text-red-600 hover:text-red-900 dark:hover:text-red-400 transition-colors"
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
+            <p className="text-xs text-muted-foreground">
+              Overall return
+            </p>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Add New Position */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Add New Position</CardTitle>
+          <CardDescription>
+            Add a new stock position to your portfolio
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Input
+              placeholder="Symbol (e.g., TSLA)"
+              value={newSymbol}
+              onChange={(e) => setNewSymbol(e.target.value)}
+              className="flex-1"
+            />
+            <Input
+              placeholder="Shares"
+              type="number"
+              value={newShares}
+              onChange={(e) => setNewShares(e.target.value)}
+              className="w-32"
+            />
+            <Input
+              placeholder="Price per share"
+              type="number"
+              step="0.01"
+              value={newPrice}
+              onChange={(e) => setNewPrice(e.target.value)}
+              className="w-40"
+            />
+            <Button onClick={addPortfolioItem} className="shrink-0">
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Add
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Portfolio Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Portfolio Positions</CardTitle>
+          <CardDescription>
+            Your current stock positions and performance
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {portfolioItems.length === 0 ? (
+            <div className="text-center py-12">
+              <DollarSignIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No positions yet</h3>
+              <p className="text-muted-foreground mb-4">
+                Add your first stock position to start tracking your portfolio
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Symbol</TableHead>
+                  <TableHead>Shares</TableHead>
+                  <TableHead className="text-right">Avg Price</TableHead>
+                  <TableHead className="text-right">Current Price</TableHead>
+                  <TableHead className="text-right">Total Value</TableHead>
+                  <TableHead className="text-right">Total Cost</TableHead>
+                  <TableHead className="text-right">P&L</TableHead>
+                  <TableHead className="text-center">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {portfolioItems.map((item) => (
+                  <TableRow key={item.symbol}>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{item.symbol}</div>
+                        <div className="text-sm text-muted-foreground">{item.name}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-mono">{item.shares}</TableCell>
+                    <TableCell className="text-right font-mono">
+                      ${item.avgPrice.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      ${item.currentPrice.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      ${item.totalValue.toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      ${item.totalCost.toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className={`font-mono ${getGainLossColor(item.gainLoss)}`}>
+                        ${item.gainLoss.toLocaleString()}
+                      </div>
+                      <div className={`text-xs ${getGainLossColor(item.gainLossPct)}`}>
+                        {item.gainLossPct >= 0 ? '+' : ''}{item.gainLossPct.toFixed(2)}%
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removePortfolioItem(item.symbol)}
+                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Portfolio Insights */}
+      {portfolioItems.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Portfolio Insights</CardTitle>
+            <CardDescription>
+              Key metrics and analysis for your portfolio
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-foreground">
+                  {portfolioItems.length}
+                </div>
+                <div className="text-sm text-muted-foreground">Total Positions</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-foreground">
+                  ${(totalPortfolioValue / portfolioItems.length).toLocaleString()}
+                </div>
+                <div className="text-sm text-muted-foreground">Average Position Size</div>
+              </div>
+              <div className="text-center">
+                <div className={`text-2xl font-bold ${totalGainLoss >= 0 ? 'text-success' : 'text-destructive'}`}>
+                  {portfolioItems.filter(item => item.gainLoss > 0).length}/{portfolioItems.length}
+                </div>
+                <div className="text-sm text-muted-foreground">Profitable Positions</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

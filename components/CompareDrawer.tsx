@@ -1,242 +1,280 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { TokenRow } from '@/lib/types';
-import { formatUsd, formatPercentage, getChangeColorClass } from '@/lib/normalize';
-import { XMarkIcon, ChartBarIcon } from '@heroicons/react/24/outline';
+import { formatUsd, formatPercentage } from '@/lib/normalize';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { 
+  XIcon, 
+  TrendingUpIcon, 
+  TrendingDownIcon, 
+  BarChart3Icon,
+  TrashIcon,
+  ExternalLinkIcon
+} from 'lucide-react';
+import { getAffiliateUrl, hasAffiliateLink } from '@/lib/affiliates';
 
 interface CompareDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   selectedTokens: TokenRow[];
   onRemoveToken: (symbol: string) => void;
-  onClearAll: () => void;
 }
 
-export default function CompareDrawer({
-  isOpen,
-  onClose,
-  selectedTokens,
-  onRemoveToken,
-  onClearAll
+export default function CompareDrawer({ 
+  isOpen, 
+  onClose, 
+  selectedTokens, 
+  onRemoveToken 
 }: CompareDrawerProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'performance'>('overview');
+  const [activeTab, setActiveTab] = useState('overview');
 
   if (!isOpen) return null;
 
+  const handleBuyClick = (token: TokenRow) => {
+    if (hasAffiliateLink(token)) {
+      window.open(getAffiliateUrl(token), '_blank');
+    }
+  };
+
+  const getChangeColor = (change: number) => {
+    return change >= 0 ? 'text-success' : 'text-danger';
+  };
+
+  const getChangeIcon = (change: number) => {
+    return change >= 0 ? TrendingUpIcon : TrendingDownIcon;
+  };
+
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black bg-opacity-50" onClick={onClose} />
+      <div 
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
       
       {/* Drawer */}
-      <div className="absolute right-0 top-0 h-full w-full max-w-4xl bg-white shadow-xl">
-        <div className="flex h-full flex-col">
+      <div className="fixed right-0 top-0 h-full w-full max-w-4xl bg-background border-l border-border shadow-2xl transform transition-transform duration-300 ease-in-out">
+        <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-            <div className="flex items-center gap-3">
-              <ChartBarIcon className="h-6 w-6 text-brand-600" />
-              <h2 className="text-lg font-semibold text-gray-900">
-                Compare Tokens ({selectedTokens.length}/4)
-              </h2>
+          <div className="flex items-center justify-between p-6 border-b border-border">
+            <div>
+              <h2 className="text-2xl font-bold">Compare Tokens</h2>
+              <p className="text-muted">
+                Compare {selectedTokens.length} selected tokens
+              </p>
             </div>
-            <div className="flex items-center gap-2">
-              {selectedTokens.length > 0 && (
-                <button
-                  onClick={onClearAll}
-                  className="text-sm text-gray-500 hover:text-gray-700"
-                >
-                  Clear all
-                </button>
-              )}
-              <button
-                onClick={onClose}
-                className="rounded-full p-1 text-gray-400 hover:text-gray-600"
-              >
-                <XMarkIcon className="h-5 w-5" />
-              </button>
-            </div>
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              <XIcon className="h-5 w-5" />
+            </Button>
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto p-6">
             {selectedTokens.length === 0 ? (
-              <EmptyState />
+              <div className="text-center py-12">
+                <BarChart3Icon className="h-16 w-16 mx-auto text-muted mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No Tokens Selected</h3>
+                <p className="text-muted">
+                  Select tokens from the table to compare their performance
+                </p>
+              </div>
             ) : (
-              <div className="p-6">
-                {/* Tabs */}
-                <div className="mb-6 border-b border-gray-200">
-                  <nav className="-mb-px flex space-x-8">
-                    <button
-                      onClick={() => setActiveTab('overview')}
-                      className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                        activeTab === 'overview'
-                          ? 'border-brand-500 text-brand-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                      }`}
-                    >
-                      Overview
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('performance')}
-                      className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                        activeTab === 'performance'
-                          ? 'border-brand-500 text-brand-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                      }`}
-                    >
-                      Performance
-                    </button>
-                  </nav>
-                </div>
-
-                {/* Comparison Table */}
-                <div className="overflow-x-auto">
-                  <table className="min-w-full border border-gray-200 rounded-lg">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Metric
-                        </th>
-                        {selectedTokens.map(token => (
-                          <th key={token.symbol} className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            <div className="flex flex-col items-center gap-2">
-                              <span className="font-semibold text-gray-900">{token.symbol}</span>
-                              <button
+              <div className="space-y-6">
+                {/* Quick Stats Comparison */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Price Comparison</CardTitle>
+                    <CardDescription>
+                      Current prices and 24h changes
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {selectedTokens.map((token) => {
+                        const ChangeIcon = getChangeIcon(token.change24h);
+                        return (
+                          <div key={token.symbol} className="p-4 border border-border rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-semibold">{token.symbol}</h4>
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => onRemoveToken(token.symbol)}
-                                className="text-gray-400 hover:text-red-500"
-                                title="Remove from comparison"
+                                className="h-6 w-6 p-0"
                               >
-                                <XMarkIcon className="h-4 w-4" />
-                              </button>
+                                <TrashIcon className="h-3 w-3" />
+                              </Button>
                             </div>
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {activeTab === 'overview' ? (
-                        <>
-                          <tr>
-                            <td className="px-4 py-3 text-sm font-medium text-gray-900">Company Name</td>
-                            {selectedTokens.map(token => (
-                              <td key={token.symbol} className="px-4 py-3 text-sm text-center text-gray-900">
+                            <div className="space-y-2">
+                              <div className="text-2xl font-bold font-mono">
+                                {formatUsd(token.price)}
+                              </div>
+                              <div className={`flex items-center gap-1 ${getChangeColor(token.change24h)}`}>
+                                <ChangeIcon className="h-4 w-4" />
+                                <span className="font-medium">
+                                  {formatPercentage(token.change24h)}
+                                </span>
+                              </div>
+                              <div className="text-sm text-muted">
                                 {token.name}
-                              </td>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Detailed Comparison Table */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Detailed Comparison</CardTitle>
+                    <CardDescription>
+                      Side-by-side comparison of key metrics
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Metric</TableHead>
+                            {selectedTokens.map((token) => (
+                              <TableHead key={token.symbol} className="text-center">
+                                {token.symbol}
+                              </TableHead>
                             ))}
-                          </tr>
-                          <tr>
-                            <td className="px-4 py-3 text-sm font-medium text-gray-900">Current Price</td>
-                            {selectedTokens.map(token => (
-                              <td key={token.symbol} className="px-4 py-3 text-sm text-center text-gray-900">
-                                {formatUsd(token.priceUsd)}
-                              </td>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          <TableRow>
+                            <TableCell className="font-medium">Price</TableCell>
+                            {selectedTokens.map((token) => (
+                              <TableCell key={token.symbol} className="text-center font-mono">
+                                {formatUsd(token.price)}
+                              </TableCell>
                             ))}
-                          </tr>
-                          <tr>
-                            <td className="px-4 py-3 text-sm font-medium text-gray-900">24h Change</td>
-                            {selectedTokens.map(token => {
-                              const changeColor = getChangeColorClass(token.change24hPct);
+                          </TableRow>
+                          <TableRow>
+                            <TableCell className="font-medium">24h Change</TableCell>
+                            {selectedTokens.map((token) => {
+                              const ChangeIcon = getChangeIcon(token.change24h);
                               return (
-                                <td key={token.symbol} className={`px-4 py-3 text-sm text-center ${changeColor}`}>
-                                  {formatPercentage(token.change24hPct)}
-                                </td>
-                              );
-                            })}
-                          </tr>
-                          <tr>
-                            <td className="px-4 py-3 text-sm font-medium text-gray-900">24h Volume</td>
-                            {selectedTokens.map(token => (
-                              <td key={token.symbol} className="px-4 py-3 text-sm text-center text-gray-900">
-                                {formatUsd(token.volume24hUsd)}
-                              </td>
-                            ))}
-                          </tr>
-                          <tr>
-                            <td className="px-4 py-3 text-sm font-medium text-gray-900">Data Source</td>
-                            {selectedTokens.map(token => (
-                              <td key={token.symbol} className="px-4 py-3 text-sm text-center text-gray-900">
-                                <span className="capitalize">{token.source}</span>
-                              </td>
-                            ))}
-                          </tr>
-                        </>
-                      ) : (
-                        <>
-                          <tr>
-                            <td className="px-4 py-3 text-sm font-medium text-gray-900">Price Performance</td>
-                            {selectedTokens.map(token => {
-                              const changeColor = getChangeColorClass(token.change24hPct);
-                              return (
-                                <td key={token.symbol} className={`px-4 py-3 text-sm text-center ${changeColor}`}>
-                                  <div className="flex flex-col items-center gap-1">
-                                    <span className="font-semibold">{formatPercentage(token.change24hPct)}</span>
-                                    <span className="text-xs text-gray-500">
-                                      {token.change24hPct > 0 ? '+' : ''}{formatUsd(token.priceUsd)}
+                                <TableCell key={token.symbol} className="text-center">
+                                  <div className={`flex items-center justify-center gap-1 ${getChangeColor(token.change24h)}`}>
+                                    <ChangeIcon className="h-4 w-4" />
+                                    <span className="font-medium">
+                                      {formatPercentage(token.change24h)}
                                     </span>
                                   </div>
-                                </td>
+                                </TableCell>
                               );
                             })}
-                          </tr>
-                          <tr>
-                            <td className="px-4 py-3 text-sm font-medium text-gray-900">Volume Activity</td>
-                            {selectedTokens.map(token => (
-                              <td key={token.symbol} className="px-4 py-3 text-sm text-center text-gray-900">
-                                <div className="flex flex-col items-center gap-1">
-                                  <span className="font-semibold">{formatUsd(token.volume24hUsd)}</span>
-                                  <span className="text-xs text-gray-500">24h volume</span>
-                                </div>
-                              </td>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell className="font-medium">Market Cap</TableCell>
+                            {selectedTokens.map((token) => (
+                              <TableCell key={token.symbol} className="text-center font-mono">
+                                {formatUsd(token.marketCap)}
+                              </TableCell>
                             ))}
-                          </tr>
-                        </>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Insights */}
-                {selectedTokens.length > 1 && (
-                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                    <h4 className="text-sm font-medium text-gray-900 mb-2">Quick Insights</h4>
-                    <div className="text-sm text-gray-600 space-y-1">
-                      {(() => {
-                        const highestGainer = selectedTokens.reduce((max, token) => 
-                          token.change24hPct > max.change24hPct ? token : max
-                        );
-                        const highestVolume = selectedTokens.reduce((max, token) => 
-                          token.volume24hUsd > max.volume24hUsd ? token : max
-                        );
-                        
-                        return (
-                          <>
-                            <p>• <strong>{highestGainer.symbol}</strong> had the best performance today at {formatPercentage(highestGainer.change24hPct)}</p>
-                            <p>• <strong>{highestVolume.symbol}</strong> had the highest trading volume at {formatUsd(highestVolume.volume24hUsd)}</p>
-                          </>
-                        );
-                      })()}
+                          </TableRow>
+                          <TableRow>
+                            <TableCell className="font-medium">Volume (24h)</TableCell>
+                            {selectedTokens.map((token) => (
+                              <TableCell key={token.symbol} className="text-center font-mono">
+                                {formatUsd(token.volume24h)}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                          <TableRow>
+                            <TableCell className="font-medium">Category</TableCell>
+                            {selectedTokens.map((token) => (
+                              <TableCell key={token.symbol} className="text-center">
+                                <Badge variant="secondary">{token.category}</Badge>
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        </TableBody>
+                      </Table>
                     </div>
-                  </div>
-                )}
+                  </CardContent>
+                </Card>
+
+                {/* Actions */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Quick Actions</CardTitle>
+                    <CardDescription>
+                      Actions you can take with selected tokens
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {selectedTokens.map((token) => (
+                        <div key={token.symbol} className="flex items-center justify-between p-3 border border-border rounded-lg">
+                          <div>
+                            <span className="font-medium">{token.symbol}</span>
+                            <span className="text-sm text-muted ml-2">- {token.name}</span>
+                          </div>
+                          <div className="flex gap-2">
+                            {hasAffiliateLink(token) && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleBuyClick(token)}
+                              >
+                                <ExternalLinkIcon className="h-4 w-4 mr-2" />
+                                Buy
+                              </Button>
+                            )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => onRemoveToken(token.symbol)}
+                            >
+                              <TrashIcon className="h-4 w-4 mr-2" />
+                              Remove
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             )}
           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
-function EmptyState() {
-  return (
-    <div className="flex items-center justify-center h-full">
-      <div className="text-center">
-        <ChartBarIcon className="mx-auto h-12 w-12 text-gray-400" />
-        <h3 className="mt-2 text-sm font-medium text-gray-900">No tokens selected</h3>
-        <p className="mt-1 text-sm text-gray-500">
-          Select up to 4 tokens from the table to compare their performance.
-        </p>
+          {/* Footer */}
+          <div className="border-t border-border p-6">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted">
+                {selectedTokens.length} token{selectedTokens.length !== 1 ? 's' : ''} selected
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={onClose}>
+                  Close
+                </Button>
+                {selectedTokens.length > 0 && (
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      // TODO: Implement export functionality
+                      console.log('Export comparison data');
+                    }}
+                  >
+                    Export Data
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

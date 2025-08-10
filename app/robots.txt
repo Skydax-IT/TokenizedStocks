@@ -11,3 +11,4 @@ Disallow: /docs/
 
 # Crawl delay (optional)
 Crawl-delay: 1
+

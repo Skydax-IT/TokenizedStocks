@@ -1,8 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { TokenRow } from '@/lib/types';
-import { BellIcon, BellSlashIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { 
+  PlusIcon, 
+  TrashIcon, 
+  BellIcon, 
+  TrendingUpIcon, 
+  TrendingDownIcon,
+  AlertTriangleIcon
+} from 'lucide-react';
 
 interface PriceAlert {
   id: string;
@@ -12,326 +25,267 @@ interface PriceAlert {
   condition: 'above' | 'below';
   isActive: boolean;
   createdAt: Date;
+  triggeredAt?: Date;
 }
 
-interface PriceAlertsProps {
-  isOpen: boolean;
-  onClose: () => void;
-  tokens: TokenRow[];
-}
-
-export default function PriceAlerts({ isOpen, onClose, tokens }: PriceAlertsProps) {
-  const [alerts, setAlerts] = useState<PriceAlert[]>([]);
-  const [selectedToken, setSelectedToken] = useState<string>('');
-  const [targetPrice, setTargetPrice] = useState<string>('');
-  const [condition, setCondition] = useState<'above' | 'below'>('above');
-
-  // Load alerts from localStorage on mount
-  useEffect(() => {
-    const savedAlerts = localStorage.getItem('priceAlerts');
-    if (savedAlerts) {
-      try {
-        const parsed = JSON.parse(savedAlerts);
-        setAlerts(parsed.map((alert: any) => ({
-          ...alert,
-          createdAt: new Date(alert.createdAt)
-        })));
-      } catch (error) {
-        console.error('Failed to parse saved alerts:', error);
-      }
+export default function PriceAlerts({ tokens }: { tokens: TokenRow[] }) {
+  const [alerts, setAlerts] = useState<PriceAlert[]>([
+    {
+      id: '1',
+      symbol: 'TSLA',
+      name: 'Tesla Inc.',
+      targetPrice: 250.00,
+      condition: 'below',
+      isActive: true,
+      createdAt: new Date('2024-01-15'),
+    },
+    {
+      id: '2',
+      symbol: 'AAPL',
+      name: 'Apple Inc.',
+      targetPrice: 150.00,
+      condition: 'above',
+      isActive: true,
+      createdAt: new Date('2024-01-10'),
     }
-  }, []);
+  ]);
 
-  // Save alerts to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('priceAlerts', JSON.stringify(alerts));
-  }, [alerts]);
+  const [newAlert, setNewAlert] = useState({
+    symbol: '',
+    targetPrice: '',
+    condition: 'above' as 'above' | 'below'
+  });
 
-  // Check for triggered alerts
-  useEffect(() => {
-    const checkAlerts = () => {
-      alerts.forEach(alert => {
-        if (!alert.isActive) return;
+  const addAlert = () => {
+    if (!newAlert.symbol || !newAlert.targetPrice) return;
 
-        const token = tokens.find(t => t.symbol === alert.symbol);
-        if (!token) return;
-
-        const shouldTrigger = 
-          (alert.condition === 'above' && token.priceUsd >= alert.targetPrice) ||
-          (alert.condition === 'below' && token.priceUsd <= alert.targetPrice);
-
-        if (shouldTrigger) {
-          // Show browser notification
-          if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification('Price Alert', {
-              body: `${alert.name} (${alert.symbol}) is now ${alert.condition} $${alert.targetPrice.toLocaleString()}`,
-              icon: '/favicon.ico',
-            });
-          }
-
-          // Deactivate the alert
-          setAlerts(prev => prev.map(a => 
-            a.id === alert.id ? { ...a, isActive: false } : a
-          ));
-        }
-      });
-    };
-
-    const interval = setInterval(checkAlerts, 30000); // Check every 30 seconds
-    return () => clearInterval(interval);
-  }, [alerts, tokens]);
-
-  const handleCreateAlert = () => {
-    if (!selectedToken || !targetPrice) return;
-
-    const token = tokens.find(t => t.symbol === selectedToken);
+    const token = tokens.find(t => t.symbol === newAlert.symbol);
     if (!token) return;
 
-    const price = parseFloat(targetPrice);
-    if (isNaN(price) || price <= 0) return;
-
-    const newAlert: PriceAlert = {
+    const alert: PriceAlert = {
       id: Date.now().toString(),
-      symbol: selectedToken,
+      symbol: newAlert.symbol,
       name: token.name,
-      targetPrice: price,
-      condition,
+      targetPrice: parseFloat(newAlert.targetPrice),
+      condition: newAlert.condition,
       isActive: true,
       createdAt: new Date(),
     };
 
-    setAlerts(prev => [...prev, newAlert]);
-    setSelectedToken('');
-    setTargetPrice('');
+    setAlerts([...alerts, alert]);
+    setNewAlert({ symbol: '', targetPrice: '', condition: 'above' });
   };
 
-  const handleToggleAlert = (id: string) => {
-    setAlerts(prev => prev.map(alert => 
+  const removeAlert = (id: string) => {
+    setAlerts(alerts.filter(alert => alert.id !== id));
+  };
+
+  const toggleAlert = (id: string) => {
+    setAlerts(alerts.map(alert => 
       alert.id === id ? { ...alert, isActive: !alert.isActive } : alert
     ));
   };
 
-  const handleDeleteAlert = (id: string) => {
-    setAlerts(prev => prev.filter(alert => alert.id !== id));
+  const getAlertStatus = (alert: PriceAlert, currentPrice: number) => {
+    if (!alert.isActive) return 'inactive';
+    
+    if (alert.condition === 'above' && currentPrice >= alert.targetPrice) {
+      return 'triggered';
+    }
+    
+    if (alert.condition === 'below' && currentPrice <= alert.targetPrice) {
+      return 'triggered';
+    }
+    
+    return 'active';
   };
 
-  const requestNotificationPermission = () => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'active':
+        return <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">Active</Badge>;
+      case 'triggered':
+        return <Badge variant="destructive">Triggered</Badge>;
+      case 'inactive':
+        return <Badge variant="secondary">Inactive</Badge>;
+      default:
+        return <Badge variant="outline">Unknown</Badge>;
     }
   };
 
-  if (!isOpen) return null;
+  const getConditionIcon = (condition: 'above' | 'below') => {
+    return condition === 'above' ? 
+      <TrendingUpIcon className="h-4 w-4 text-green-600" /> : 
+      <TrendingDownIcon className="h-4 w-4 text-red-600" />;
+  };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Price Alerts
-            </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Get notified when tokens reach your target prices
-            </p>
-          </div>
-          
-          <button
-            onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Price Alerts</h2>
+          <p className="text-gray-600 dark:text-gray-400">
+            Set price alerts to stay informed about market movements
+          </p>
         </div>
+        <Badge variant="outline" className="text-sm">
+          {alerts.filter(a => a.isActive).length} Active Alerts
+        </Badge>
+      </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Create New Alert */}
-          <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-              Create New Alert
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {/* Token Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Token
-                </label>
-                <select
-                  value={selectedToken}
-                  onChange={(e) => setSelectedToken(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                >
-                  <option value="">Select a token</option>
-                  {tokens.map(token => (
-                    <option key={token.symbol} value={token.symbol}>
-                      {token.name} ({token.symbol})
-                    </option>
-                  ))}
-                </select>
-              </div>
+      {/* Create New Alert */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <PlusIcon className="h-5 w-5" />
+            Create New Alert
+          </CardTitle>
+          <CardDescription>
+            Set a price alert for any token in your portfolio
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Select value={newAlert.symbol} onValueChange={(value) => setNewAlert({ ...newAlert, symbol: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select Token" />
+              </SelectTrigger>
+              <SelectContent>
+                {tokens.map((token) => (
+                  <SelectItem key={token.symbol} value={token.symbol}>
+                    {token.symbol} - {token.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-              {/* Condition */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Condition
-                </label>
-                <select
-                  value={condition}
-                  onChange={(e) => setCondition(e.target.value as 'above' | 'below')}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                >
-                  <option value="above">Above</option>
-                  <option value="below">Below</option>
-                </select>
-              </div>
+            <Select value={newAlert.condition} onValueChange={(value: 'above' | 'below') => setNewAlert({ ...newAlert, condition: value })}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="above">Above</SelectItem>
+                <SelectItem value="below">Below</SelectItem>
+              </SelectContent>
+            </Select>
 
-              {/* Target Price */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Target Price ($)
-                </label>
-                <input
-                  type="number"
-                  value={targetPrice}
-                  onChange={(e) => setTargetPrice(e.target.value)}
-                  placeholder="0.00"
-                  step="0.01"
-                  min="0"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                />
-              </div>
+            <Input
+              type="number"
+              placeholder="Target Price"
+              value={newAlert.targetPrice}
+              onChange={(e) => setNewAlert({ ...newAlert, targetPrice: e.target.value })}
+              step="0.01"
+              min="0"
+            />
 
-              {/* Create Button */}
-              <div className="flex items-end">
-                <button
-                  onClick={handleCreateAlert}
-                  disabled={!selectedToken || !targetPrice}
-                  className="w-full px-4 py-2 bg-brand-500 text-white rounded-md hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  Create Alert
-                </button>
-              </div>
-            </div>
+            <Button onClick={addAlert} disabled={!newAlert.symbol || !newAlert.targetPrice}>
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Add Alert
+            </Button>
           </div>
+        </CardContent>
+      </Card>
 
-          {/* Notification Permission */}
-          {('Notification' in window && Notification.permission === 'default') && (
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-              <div className="flex items-center gap-3">
-                <BellIcon className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-                <div className="flex-1">
-                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                    Enable browser notifications to receive price alerts
-                  </p>
-                </div>
-                <button
-                  onClick={requestNotificationPermission}
-                  className="px-3 py-1 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700 transition-colors"
-                >
-                  Enable
-                </button>
-              </div>
+      {/* Alerts List */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BellIcon className="h-5 w-5" />
+            Your Alerts
+          </CardTitle>
+          <CardDescription>
+            Manage your active and inactive price alerts
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {alerts.length === 0 ? (
+            <div className="text-center py-12">
+              <BellIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No Alerts Set</h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Create your first price alert to get started
+              </p>
             </div>
-          )}
-
-          {/* Existing Alerts */}
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-              Your Alerts ({alerts.length})
-            </h3>
-            
-            {alerts.length === 0 ? (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                <BellIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No price alerts set yet.</p>
-                <p className="text-sm">Create your first alert above.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {alerts.map(alert => {
-                  const token = tokens.find(t => t.symbol === alert.symbol);
-                  const currentPrice = token?.priceUsd || 0;
-                  const isTriggered = 
-                    (alert.condition === 'above' && currentPrice >= alert.targetPrice) ||
-                    (alert.condition === 'below' && currentPrice <= alert.targetPrice);
-
-                  return (
-                    <div
-                      key={alert.id}
-                      className={`p-4 border rounded-lg ${
-                        isTriggered
-                          ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20'
-                          : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-700'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-medium text-gray-900 dark:text-white">
-                              {alert.name} ({alert.symbol})
-                            </h4>
-                            {isTriggered && (
-                              <span className="px-2 py-1 bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200 text-xs rounded-full">
-                                Triggered
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Alert when price goes {alert.condition} ${alert.targetPrice.toLocaleString()}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            Created {alert.createdAt.toLocaleDateString()}
-                          </p>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleToggleAlert(alert.id)}
-                            className={`p-2 rounded-md transition-colors ${
-                              alert.isActive
-                                ? 'text-green-600 hover:bg-green-100 dark:hover:bg-green-900/20'
-                                : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600'
-                            }`}
-                          >
-                            {alert.isActive ? (
-                              <BellIcon className="h-5 w-5" />
-                            ) : (
-                              <BellSlashIcon className="h-5 w-5" />
-                            )}
-                          </button>
-                          
-                          <button
-                            onClick={() => handleDeleteAlert(alert.id)}
-                            className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-md transition-colors"
-                          >
-                            <TrashIcon className="h-5 w-5" />
-                          </button>
+          ) : (
+            <div className="space-y-4">
+              {alerts.map((alert) => {
+                const token = tokens.find(t => t.symbol === alert.symbol);
+                const currentPrice = token?.priceUsd || 0;
+                const status = getAlertStatus(alert, currentPrice);
+                
+                return (
+                  <div key={alert.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        {getConditionIcon(alert.condition)}
+                        <div>
+                          <div className="font-medium">{alert.symbol}</div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400">{alert.name}</div>
                         </div>
                       </div>
                       
-                      {token && (
-                        <div className="mt-2 text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">Current price: </span>
-                          <span className={`font-medium ${
-                            isTriggered ? 'text-green-600' : 'text-gray-900 dark:text-white'
-                          }`}>
-                            ${currentPrice.toLocaleString()}
-                          </span>
-                        </div>
-                      )}
+                      <div className="text-center">
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Target Price</div>
+                        <div className="font-medium">${alert.targetPrice.toFixed(2)}</div>
+                      </div>
+                      
+                      <div className="text-center">
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Current Price</div>
+                        <div className="font-medium">${currentPrice.toFixed(2)}</div>
+                      </div>
+                      
+                      <div className="text-center">
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Status</div>
+                        {getStatusBadge(status)}
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                    
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toggleAlert(alert.id)}
+                      >
+                        {alert.isActive ? 'Disable' : 'Enable'}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeAlert(alert.id)}
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Alert History */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertTriangleIcon className="h-5 w-5" />
+            Alert History
+          </CardTitle>
+          <CardDescription>
+            Track when your alerts were triggered
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-12">
+            <AlertTriangleIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">History Coming Soon</h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              Alert history and notification logs will be available in the next update
+            </p>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

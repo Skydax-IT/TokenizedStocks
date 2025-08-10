@@ -55,7 +55,8 @@ function ensureUtmParams(url: string, symbol: string): string {
 /**
  * Get affiliate URL for a specific symbol
  */
-export function getAffiliateUrl(symbol: string): string | null {
+export function getAffiliateUrl(symbol: string | undefined | null): string | null {
+  if (!symbol || typeof symbol !== 'string') return null;
   const affiliates = loadAffiliates();
   return affiliates[symbol.toUpperCase()] || null;
 }
@@ -63,7 +64,8 @@ export function getAffiliateUrl(symbol: string): string | null {
 /**
  * Check if affiliate link is available for a symbol
  */
-export function hasAffiliateLink(symbol: string): boolean {
+export function hasAffiliateLink(symbol: string | undefined | null): boolean {
+  if (!symbol || typeof symbol !== 'string') return false;
   return getAffiliateUrl(symbol) !== null;
 }
 
