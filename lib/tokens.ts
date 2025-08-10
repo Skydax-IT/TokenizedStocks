@@ -1,41 +1,58 @@
-// Central place to manage which tokenized stocks to display and affiliate links.
-// Add/remove tokens here. Update `krakenPair` (if exists) and `coingeckoId` (fallback).
-export type TokenConfig = {
-  symbol: string; // e.g., AAPL
-  name: string; // e.g., Apple Inc.
-  krakenPair?: string; // Kraken pair, e.g., AAPL/USD or AAPLUSD
-  coingeckoId?: string; // CoinGecko coin id for tokenized stock (fallback)
-  affiliateUrl: string; // Button target
-};
+import { TokenConfig, TokensArraySchema } from '@/lib/types';
+import { z } from 'zod';
+import fs from 'fs';
+import path from 'path';
 
-export const TOKENS: TokenConfig[] = [
-  {
-    symbol: 'AAPL',
-    name: 'Apple Inc.',
-    // Kraken may not have tokenized stocks; we still try.
-    krakenPair: 'AAPLUSD',
-    // CoinGecko tokenized stocks (DeFiChain) as fallback:
-    coingeckoId: 'apple-tokenized-stock-defichain',
-    affiliateUrl: 'https://myaffiliatelink.com/AAPL'
-  },
-  {
-    symbol: 'TSLA',
-    name: 'Tesla, Inc.',
-    krakenPair: 'TSLAUSD',
-    coingeckoId: 'tesla-tokenized-stock-defichain',
-    affiliateUrl: 'https://myaffiliatelink.com/TSLA'
-  },
-  {
-    symbol: 'NVDA',
-    name: 'NVIDIA Corporation',
-    krakenPair: 'NVDAUSD',
-    coingeckoId: 'nvidia-tokenized-stock-defichain',
-    affiliateUrl: 'https://myaffiliatelink.com/NVDA'
+// Re-export the TokenConfig type for convenience
+export type { TokenConfig } from '@/lib/types';
+
+/**
+ * Load tokens from the JSON configuration file
+ */
+export function loadTokens(): TokenConfig[] {
+  try {
+    // Read the JSON file directly using fs
+    const filePath = path.join(process.cwd(), 'data', 'tokens.json');
+    const fileContent = fs.readFileSync(filePath, 'utf-8');
+    const tokensData = JSON.parse(fileContent);
+    
+    // Validate with Zod
+    const validated = TokensArraySchema.parse(tokensData);
+    
+    return validated;
+  } catch (error) {
+    console.error('Failed to load tokens:', error);
+    throw new Error('Failed to load token configuration');
   }
-];
+}
 
-// Helper for affiliate lookup inside UI
-export const affiliateBySymbol: Record<string, string> = Object.fromEntries(
-  TOKENS.map((t) => [t.symbol, t.affiliateUrl])
+/**
+ * Find a token by its symbol
+ */
+export function findBySymbol(symbol: string): TokenConfig | undefined {
+  const tokens = loadTokens();
+  return tokens.find(token => token.symbol.toUpperCase() === symbol.toUpperCase());
+}
+
+/**
+ * Get all available symbols
+ */
+export function allSymbols(): string[] {
+  const tokens = loadTokens();
+  return tokens.map(token => token.symbol);
+}
+
+/**
+ * Get all tokens
+ */
+export function getAllTokens(): TokenConfig[] {
+  return loadTokens();
+}
+
+// Legacy exports for backward compatibility
+export const TOKENS = loadTokens();
+export const tokenBySymbol: Record<string, TokenConfig> = Object.fromEntries(
+  TOKENS.map((t) => [t.symbol, t])
 );
+export const getAvailableSymbols = allSymbols;
 

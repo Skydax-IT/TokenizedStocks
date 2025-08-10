@@ -1,127 +1,153 @@
-import { NextResponse } from 'next/server';
-import { TOKENS, type TokenConfig } from '@/lib/tokens';
+import { NextRequest, NextResponse } from 'next/server';
+import { getAllTokens, type TokenConfig } from '@/lib/tokens';
+import { fetchKrakenTicker } from '@/lib/fetchers/kraken';
+import { fetchCoinGeckoTicker } from '@/lib/fetchers/coingecko';
+import { fetchMockTicker } from '@/lib/fetchers/mock';
+import { normalizeTokenData } from '@/lib/normalize';
+import { TokenRow } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
-type TokenQuote = {
-  symbol: string;
-  name: string;
-  priceUsd: number | null;
-  change24hPct: number | null;
-  volume24hUsd: number | null;
-  source: 'kraken' | 'coingecko' | 'unavailable';
-  affiliateUrl: string;
-};
-
-// Kraken public Ticker endpoint: https://api.kraken.com/0/public/Ticker?pair=PAIR
-async function fetchFromKraken(pair: string) {
-  const url = `https://api.kraken.com/0/public/Ticker?pair=${encodeURIComponent(pair)}`;
-  const res = await fetch(url, { cache: 'no-store', next: { revalidate: 0 } });
-  if (!res.ok) throw new Error('Kraken network error');
-  const json = (await res.json()) as any;
-  if (json.error && json.error.length) throw new Error(json.error.join(', '));
-  const result = json.result;
-  if (!result || typeof result !== 'object') throw new Error('No Kraken result');
-
-  const firstKey = Object.keys(result)[0];
-  if (!firstKey) throw new Error('Empty Kraken result');
-
-  const t = result[firstKey];
-  const lastTrade = Array.isArray(t?.c) ? parseFloat(t.c[0]) : NaN; // last price
-  const opening = t?.o ? parseFloat(t.o) : NaN; // opening price
-  const vol24h = Array.isArray(t?.v) ? parseFloat(t.v[1]) : NaN; // volume 24h (base)
-  if (!isFinite(lastTrade)) throw new Error('Invalid Kraken price');
-
-  // Kraken volume is base volume; USD volume may not be available. Keep as base unit unless pair uses USD.
-  const changePct =
-    isFinite(opening) && opening !== 0 ? ((lastTrade - opening) / opening) * 100 : null;
-
-  return {
-    priceUsd: lastTrade,
-    change24hPct: changePct,
-    volume24hUsd: isFinite(vol24h) ? vol24h : null
-  } as const;
-}
-
-// CoinGecko fallback by coin id:
-// https://api.coingecko.com/api/v3/coins/{id}?localization=false&tickers=false&market_data=true...
-async function fetchFromCoinGecko(id: string) {
-  const url = `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(
-    id
-  )}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false`;
-  const res = await fetch(url, { cache: 'no-store', next: { revalidate: 0 } });
-  if (!res.ok) throw new Error('CoinGecko network error');
-  const json = (await res.json()) as any;
-  const md = json?.market_data;
-  const price = md?.current_price?.usd;
-  const change = md?.price_change_percentage_24h;
-  const vol = md?.total_volume?.usd;
-  if (typeof price !== 'number') throw new Error('Invalid CoinGecko price');
-  return {
-    priceUsd: price,
-    change24hPct: typeof change === 'number' ? change : null,
-    volume24hUsd: typeof vol === 'number' ? vol : null
-  } as const;
-}
-
-function normalizePair(pair?: string) {
-  if (!pair) return undefined;
-  // Kraken accepts both AAPLUSD and AAPL/USD; we normalize to no slash.
-  return pair.replace('/', '').toUpperCase();
-}
-
-async function quoteForToken(token: TokenConfig): Promise<TokenQuote> {
-  // Try Kraken first
-  const krakenPair = normalizePair(token.krakenPair);
-  if (krakenPair) {
+/**
+ * Fetch token data with Kraken priority, CoinGecko fallback, and mock data as final fallback
+ */
+async function fetchTokenData(token: TokenConfig): Promise<TokenRow | null> {
+  // Try Kraken first if krakenPair is available
+  if (token.krakenPair && token.krakenPair.trim() !== '') {
     try {
-      const k = await fetchFromKraken(krakenPair);
-      return {
-        symbol: token.symbol,
-        name: token.name,
-        priceUsd: k.priceUsd,
-        change24hPct: k.change24hPct,
-        volume24hUsd: k.volume24hUsd,
-        source: 'kraken',
-        affiliateUrl: token.affiliateUrl
-      };
-    } catch {
-      // fall through
+      const krakenData = await fetchKrakenTicker(token.krakenPair);
+      const normalized = normalizeTokenData(
+        token.symbol,
+        token.name,
+        krakenData.priceUsd,
+        krakenData.change24hPct,
+        krakenData.volume24hUsd,
+        'kraken'
+      );
+      
+      if (normalized) {
+        return normalized;
+      }
+    } catch (error) {
+      console.warn(`Kraken failed for ${token.symbol}:`, error);
+      // Fall through to CoinGecko
     }
   }
 
   // Fallback to CoinGecko
-  if (token.coingeckoId) {
-    try {
-      const c = await fetchFromCoinGecko(token.coingeckoId);
-      return {
-        symbol: token.symbol,
-        name: token.name,
-        priceUsd: c.priceUsd,
-        change24hPct: c.change24hPct,
-        volume24hUsd: c.volume24hUsd,
-        source: 'coingecko',
-        affiliateUrl: token.affiliateUrl
-      };
-    } catch {
-      // fall through
+  try {
+    const coingeckoData = await fetchCoinGeckoTicker(token.coingeckoId);
+    const normalized = normalizeTokenData(
+      token.symbol,
+      token.name,
+      coingeckoData.priceUsd,
+      coingeckoData.change24hPct,
+      coingeckoData.volume24hUsd,
+      'coingecko'
+    );
+    
+    if (normalized) {
+      return normalized;
     }
+  } catch (error) {
+    console.warn(`CoinGecko failed for ${token.symbol}:`, error);
+    // Fall through to mock data
   }
 
-  // Unavailable
-  return {
-    symbol: token.symbol,
-    name: token.name,
-    priceUsd: null,
-    change24hPct: null,
-    volume24hUsd: null,
-    source: 'unavailable',
-    affiliateUrl: token.affiliateUrl
-  };
+  // Final fallback to mock data for development
+  try {
+    const mockData = await fetchMockTicker(token);
+    const normalized = normalizeTokenData(
+      token.symbol,
+      token.name,
+      mockData.priceUsd,
+      mockData.change24hPct,
+      mockData.volume24hUsd,
+      'coingecko' // Use coingecko as source for mock data
+    );
+    
+    if (normalized) {
+      return normalized;
+    }
+  } catch (error) {
+    console.warn(`Mock data failed for ${token.symbol}:`, error);
+    // Token unavailable from all sources
+  }
+
+  return null;
 }
 
-export async function GET() {
-  const data = await Promise.all(TOKENS.map((t) => quoteForToken(t)));
-  return NextResponse.json({ data, updatedAt: new Date().toISOString() });
+export async function GET(request: NextRequest) {
+  try {
+    // Load tokens from configuration
+    const tokens = getAllTokens();
+    
+    // Fetch data for all tokens concurrently
+    const tokenPromises = tokens.map(fetchTokenData);
+    const results = await Promise.allSettled(tokenPromises);
+
+    // Process results and count sources
+    const validTokens: TokenRow[] = [];
+    const warnings: string[] = [];
+    let krakenCount = 0;
+    let coingeckoCount = 0;
+    let unavailableCount = 0;
+
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled' && result.value) {
+        validTokens.push(result.value);
+        if (result.value.source === 'kraken') {
+          krakenCount++;
+        } else {
+          coingeckoCount++;
+        }
+      } else {
+        unavailableCount++;
+        const tokenSymbol = tokens[index].symbol;
+        warnings.push(`Token ${tokenSymbol} unavailable from both APIs`);
+        console.warn(`Token ${tokenSymbol} unavailable from both APIs`);
+      }
+    });
+
+    // Sort tokens by symbol for consistent ordering
+    validTokens.sort((a, b) => a.symbol.localeCompare(b.symbol));
+
+    const apiResponse = {
+      data: validTokens,
+      updatedAt: new Date().toISOString(),
+      sources: {
+        kraken: krakenCount,
+        coingecko: coingeckoCount,
+        unavailable: unavailableCount,
+      },
+      warnings: warnings.length > 0 ? warnings : undefined,
+    };
+
+    return NextResponse.json(apiResponse, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    });
+
+  } catch (error) {
+    console.error('Error in /api/tokens:', error);
+    
+    return NextResponse.json(
+      { 
+        error: 'Failed to fetch token data',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        updatedAt: new Date().toISOString()
+      },
+      { 
+        status: 500,
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        },
+      }
+    );
+  }
 }
 

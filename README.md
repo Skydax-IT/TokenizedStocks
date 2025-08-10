@@ -1,191 +1,342 @@
-# Tokenization Data Hub — Tokenized Stocks Dashboard
+# Tokenized Stocks Dashboard
 
-Next.js 14 + TailwindCSS app with live tokenized stocks data from Kraken (primary) and CoinGecko (fallback). Auto-refresh every 5 minutes, affiliate links, and Beehiiv newsletter.
+A modern Next.js 14 + TailwindCSS application for displaying real-time tokenized stock data with affiliate link management.
 
-## Features
+## ✨ Features
 
-- **Live Data**: Fetches from Kraken API first, falls back to CoinGecko
-- **Auto-refresh**: Updates every 5 minutes without page reload
-- **Responsive Design**: Mobile-friendly table with TailwindCSS styling
-- **Affiliate Links**: Configurable buy buttons for each token
-- **Newsletter**: Beehiiv integration for email signups
-- **SEO Optimized**: Meta tags for search engines
+- **Real-time Data**: Live tokenized stock prices from Kraken API with CoinGecko fallback
+- **Enhanced API System**: Robust error handling, validation, and 8-second timeouts
+- **Affiliate Management**: Centralized affiliate link system with UTM tracking
+- **Responsive Design**: Mobile-friendly table with alternating row colors
+- **Auto-refresh**: Data updates every 5 minutes without page reload
+- **Newsletter Integration**: Beehiiv API integration for email collection
+- **SEO Optimized**: Meta tags, robots.txt, and sitemap for search engine optimization
+- **Security Headers**: Comprehensive security headers and CSP policies
 
-## Getting Started
+## 🏗️ Architecture
+
+### Enhanced API System
+
+The application now features a robust, layered API architecture:
+
+```
+lib/
+├── fetchers/           # API-specific data fetchers
+│   ├── kraken.ts      # Kraken API integration
+│   └── coingecko.ts   # CoinGecko API integration
+├── types.ts           # Zod schemas and TypeScript types
+├── normalize.ts       # Data normalization utilities
+├── affiliates.ts      # Affiliate link management
+└── tokens.ts          # Token configuration
+```
+
+### Data Flow
+
+1. **Primary Source**: Kraken API (8s timeout, Zod validation)
+2. **Fallback Source**: CoinGecko API (8s timeout, Zod validation)
+3. **Data Normalization**: Consistent formatting and validation
+4. **Response**: Normalized data with source attribution
+
+## 🚀 Getting Started
 
 ### Prerequisites
+
 - Node.js 18+ 
 - npm or yarn
 
 ### Installation
-1. Clone the repository
-   ```bash
-   git clone <your-repo-url>
-   cd TokenizedStocks
-   ```
 
-2. Install dependencies
-   ```bash
-   npm install
-   ```
+```bash
+# Clone the repository
+git clone https://github.com/Skydax-IT/TokenizedStocks.git
+cd TokenizedStocks
 
-3. Run development server
-   ```bash
-   npm run dev
-   ```
+# Install dependencies
+npm install
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser
+# Run development server
+npm run dev
+```
 
-## Configuration
+### Environment Variables
 
-### Tokens and Affiliate Links
-Edit `lib/tokens.ts` to:
-- Add/remove tokenized stocks
-- Update Kraken pairs and CoinGecko IDs
-- Configure affiliate URLs
+Create a `.env.local` file:
+
+```bash
+# Beehiiv Newsletter API (optional)
+BEEHIIV_API_KEY=your_api_key_here
+BEEHIIV_PUBLICATION_ID=your_publication_id_here
+```
+
+## 🔧 Configuration
+
+### How to Edit Tokens & Affiliates
+
+#### Adding/Editing Tokens
+
+Edit `lib/tokens.ts`:
 
 ```typescript
 export const TOKENS: TokenConfig[] = [
   {
     symbol: 'AAPL',
     name: 'Apple Inc.',
-    krakenPair: 'AAPLUSD',
-    coingeckoId: 'apple-tokenized-stock-defichain',
-    affiliateUrl: 'https://myaffiliatelink.com/AAPL'
+    krakenPair: 'AAPLUSD',        // Kraken trading pair
+    coingeckoId: 'apple'          // CoinGecko coin ID
+  },
+  {
+    symbol: 'NEW',
+    name: 'New Company Inc.',
+    krakenPair: 'NEWUSD',         // Kraken trading pair
+    coingeckoId: 'new-token-id'   // CoinGecko coin ID
   }
-  // Add more tokens...
 ];
 ```
 
-### Newsletter (Beehiiv)
-1. Create `.env.local` file:
+**Important Notes:**
+- `krakenPair`: Must match exactly with Kraken's trading pair format
+- `coingeckoId`: Use CoinGecko's coin identifier (usually lowercase, hyphenated)
+- Symbol should be uppercase and match your affiliate configuration
+
+#### Updating Affiliate Links
+
+Edit `data/affiliates.json`:
+
+```json
+{
+  "AAPL": "https://your-affiliate-link.com/AAPL?utm_source=tokenizedstocks&utm_symbol=AAPL",
+  "TSLA": "https://your-affiliate-link.com/TSLA?utm_source=tokenizedstocks&utm_symbol=TSLA",
+  "NEW": "https://your-affiliate-link.com/NEW?utm_source=tokenizedstocks&utm_symbol=NEW"
+}
+```
+
+**UTM Parameters:**
+- `utm_source=tokenizedstocks` - Identifies traffic source
+- `utm_symbol=SYMBOL` - Tracks which token was clicked
+
+### How to Set Beehiiv API Key
+
+1. **Get Your API Key:**
+   - Log into your Beehiiv account
+   - Go to Settings → API Keys
+   - Generate a new API key
+
+2. **Configure Environment:**
    ```bash
-   BEEHIIV_API_KEY=your_api_key_here
+   # .env.local
+   BEEHIIV_API_KEY=your_actual_api_key_here
    BEEHIIV_PUBLICATION_ID=your_publication_id_here
    ```
 
-2. Or set in Vercel Project Settings → Environment Variables
+3. **Find Publication ID:**
+   - In Beehiiv dashboard, go to Settings → General
+   - Your publication ID is in the URL: `https://app.beehiiv.com/publications/PUBLICATION_ID/...`
 
-3. Optional: Replace the embed placeholder in `components/Newsletter.tsx` with your Beehiiv embed snippet
+4. **Test Integration:**
+   - Start your dev server: `npm run dev`
+   - Try subscribing to the newsletter
+   - Check Beehiiv dashboard for new subscribers
 
-## API Endpoints
-
-### `/api/tokens`
-- **GET**: Fetches live tokenized stocks data
-- **Source Priority**: Kraken → CoinGecko → Unavailable
-- **Cache**: No caching, fresh data on each request
-
-### `/api/newsletter`
-- **POST**: Subscribes email to Beehiiv newsletter
-- **Body**: `{ "email": "user@example.com" }`
-- **Fallback**: Simulates success if API keys are missing
-
-## Data Sources
-
-### Kraken API
-- **Endpoint**: `https://api.kraken.com/0/public/Ticker`
-- **Rate Limit**: Public endpoint, no authentication required
-- **Data**: Price, 24h change, volume
-
-### CoinGecko API
-- **Endpoint**: `https://api.coingecko.com/api/v3/coins/{id}`
-- **Rate Limit**: Free tier available
-- **Data**: Price, 24h change, volume (USD)
-
-## Deployment
+## 🚀 Deployment
 
 ### Vercel (Recommended)
-1. Push code to GitHub
-2. Import project in Vercel
-3. Set environment variables:
-   - `BEEHIIV_API_KEY`
-   - `BEEHIIV_PUBLICATION_ID`
-4. Deploy
 
-### Other Platforms
-- Build: `npm run build`
-- Start: `npm start`
-- Static export: Configure in `next.config.ts`
+1. **Connect Repository:**
+   - Go to [vercel.com](https://vercel.com)
+   - Click "New Project"
+   - Import your GitHub repository
 
-## Customization
+2. **Configure Environment Variables:**
+   - In Vercel dashboard, go to Settings → Environment Variables
+   - Add your Beehiiv API credentials:
+     ```
+     BEEHIIV_API_KEY=your_api_key
+     BEEHIIV_PUBLICATION_ID=your_publication_id
+     ```
 
-### Styling
-- **Colors**: Update `tailwind.config.ts` brand colors
-- **Components**: Modify `app/globals.css` utility classes
-- **Layout**: Edit `app/layout.tsx` for header/footer changes
+3. **Deploy:**
+   - Vercel will automatically deploy on push to main branch
+   - Or manually deploy from dashboard
+
+4. **Custom Domain (Optional):**
+   - Go to Settings → Domains
+   - Add your custom domain
+   - Update `metadataBase` in `app/layout.tsx`
+
+### Manual Deployment
+
+```bash
+# Build the application
+npm run build
+
+# Start production server
+npm start
+```
+
+### Environment Variables for Production
+
+Ensure these are set in your production environment:
+```bash
+NODE_ENV=production
+BEEHIIV_API_KEY=your_production_api_key
+BEEHIIV_PUBLICATION_ID=your_publication_id
+```
+
+## 📊 API Endpoints
+
+### `/api/tokens`
+
+Fetches tokenized stock data with enhanced error handling.
+
+**Response Format:**
+```typescript
+{
+  data: TokenRow[];
+  updatedAt: string;
+  sources: {
+    kraken: number;      // Count of tokens from Kraken
+    coingecko: number;   // Count of tokens from CoinGecko
+    unavailable: number; // Count of unavailable tokens
+  };
+}
+```
+
+**TokenRow Structure:**
+```typescript
+{
+  symbol: string;        // e.g., "AAPL"
+  name: string;          // e.g., "Apple Inc."
+  priceUsd: number;      // Current price in USD
+  change24hPct: number;  // 24h price change percentage
+  volume24hUsd: number;  // 24h volume in USD
+  source: "kraken" | "coingecko";
+}
+```
+
+### `/api/newsletter`
+
+Handles newsletter subscriptions via Beehiiv API.
+
+### `/api/sitemap`
+
+Generates XML sitemap for search engines.
+
+## 🔗 Affiliate System
+
+### Configuration
+
+Affiliate links are stored in `/data/affiliates.json`:
+
+```json
+{
+  "AAPL": "https://myaffiliatelink.com/AAPL?utm_source=tokenizedstocks&utm_symbol=AAPL",
+  "TSLA": "https://myaffiliatelink.com/TSLA?utm_source=tokenizedstocks&utm_symbol=TSLA"
+}
+```
+
+### UTM Parameters
+
+The system automatically adds UTM tracking parameters:
+- `utm_source=tokenizedstocks`
+- `utm_symbol=SYMBOL`
+
+### Button States
+
+- **Available**: Clickable "Buy" button linking to affiliate URL
+- **Unavailable**: Disabled button with "Link not available" tooltip
+
+## 🎨 Customization
 
 ### Adding New Tokens
-1. Add to `TOKENS` array in `lib/tokens.ts`
-2. Set appropriate `krakenPair` and `coingeckoId`
-3. Configure `affiliateUrl`
-4. Restart dev server
 
-### Newsletter Form
-- Replace placeholder in `components/Newsletter.tsx`
-- Customize form fields and validation
-- Add additional Beehiiv integration features
+Edit `lib/tokens.ts`:
 
-## Project Structure
-
-```
-TokenizedStocks/
-├── app/                    # Next.js App Router
-│   ├── api/               # API routes
-│   │   ├── tokens/        # Token data endpoint
-│   │   └── newsletter/    # Newsletter signup
-│   ├── globals.css        # Global styles
-│   ├── layout.tsx         # Root layout
-│   └── page.tsx           # Homepage
-├── components/             # React components
-│   └── Newsletter.tsx     # Newsletter form
-├── lib/                    # Utility functions
-│   └── tokens.ts          # Token configuration
-├── package.json            # Dependencies
-├── tailwind.config.ts      # TailwindCSS config
-├── next.config.ts          # Next.js config
-└── README.md               # This file
+```typescript
+export const TOKENS: TokenConfig[] = [
+  {
+    symbol: 'NEW',
+    name: 'New Company Inc.',
+    krakenPair: 'NEWUSD',        // Kraken trading pair
+    coingeckoId: 'new-token-id'  // CoinGecko coin ID
+  }
+];
 ```
 
-## Troubleshooting
+### Updating Affiliate Links
 
-### Data Not Loading
-- Check browser console for errors
-- Verify API endpoints are accessible
-- Kraken may not have tokenized stocks; CoinGecko fallback will be used
+Edit `data/affiliates.json`:
 
-### Newsletter Issues
-- Ensure Beehiiv API keys are set
-- Check API rate limits
-- Verify publication ID exists
+```json
+{
+  "NEW": "https://your-affiliate-link.com/NEW?utm_source=tokenizedstocks&utm_symbol=NEW"
+}
+```
 
-### Build Errors
-- Clear `.next` folder: `rm -rf .next`
-- Reinstall dependencies: `rm -rf node_modules && npm install`
-- Check TypeScript errors: `npm run lint`
+### Styling
 
-## Contributing
+Modify `tailwind.config.ts` for brand colors and `app/globals.css` for custom styles.
+
+## 🔒 Security Features
+
+- **Input Validation**: Zod schemas for all API responses
+- **Error Handling**: Graceful fallbacks and user-friendly error messages
+- **Rate Limiting**: Built-in timeout protection (8s per API call)
+- **CORS**: Proper cross-origin request handling
+- **Security Headers**: Comprehensive security headers including:
+  - Content Security Policy (CSP)
+  - X-Frame-Options: DENY
+  - X-Content-Type-Options: nosniff
+  - Referrer-Policy: strict-origin-when-cross-origin
+  - Permissions-Policy: restrictive permissions
+
+## 📈 Performance
+
+- **SWR**: Efficient data fetching with automatic revalidation
+- **Optimized APIs**: Concurrent API calls with Promise.allSettled
+- **Caching**: Strategic cache control headers
+- **Bundle Optimization**: Tree-shaking and code splitting
+- **Static Assets**: Long-term caching for static files (1 year)
+- **API Responses**: No-cache for dynamic data
+
+## 🤝 Contributing
 
 1. Fork the repository
-2. Create feature branch: `git checkout -b feature-name`
-3. Commit changes: `git commit -am 'Add feature'`
-4. Push branch: `git push origin feature-name`
-5. Submit pull request
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
-## License
+## 📄 License
 
-This project is for informational purposes only. Not financial advice.
+This project is licensed under the MIT License.
 
-## Support
+## 🆘 Troubleshooting
 
-- **Issues**: Create GitHub issue
-- **Questions**: Check documentation or create discussion
-- **Security**: Report vulnerabilities privately
+### Common Issues
+
+**API Timeouts**: Check network connectivity and API endpoint availability
+**Missing Data**: Verify token symbols and API configurations
+**Build Errors**: Ensure Node.js version compatibility
+**Newsletter Not Working**: Verify Beehiiv API key and publication ID
+
+### Debug Mode
+
+Enable detailed logging by setting `NODE_ENV=development` in your environment.
+
+### API Status Check
+
+Test your API endpoints:
+```bash
+# Test tokens endpoint
+curl https://your-domain.vercel.app/api/tokens
+
+# Test newsletter endpoint
+curl -X POST https://your-domain.vercel.app/api/newsletter \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com"}'
+```
 
 ---
 
-**Note**: This application uses free public APIs. For production use, consider:
-- Rate limiting and caching
-- Error monitoring and logging
-- Backup data sources
-- Professional API keys if available
+Built with ❤️ using Next.js 14, TailwindCSS, and modern web technologies.
 
